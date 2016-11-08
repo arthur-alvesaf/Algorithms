@@ -6,22 +6,75 @@ import java.io.*;
 import java.util.*;
 
 class knapsack {
-	static int wsize, nitems;
-	static int value[][];
+	static int maxWeight, nitems;
+	static int[] weights, values;
+
+	static int maximumOf(int left, int right) {
+		if (left > right)
+			return left;
+		else
+			return right;
+	}
+
+	// Recursive function that calculates the maximum value that can be acquired with this function.
+	static int recursiveKnapsack(int maxW, int n) {
+		// Base case (the bag can't hold any more items, or there are no more items to put in the bag)
+		if (n == 0 || maxW == 0) { return 0; }
+
+		// The last item can't be taken if its weight is higher than the bags capacity
+		if (weights[n - 1] > maxW) {
+			return recursiveKnapsack (maxW, n - 1);
+		}
+
+		// Decide if the item at position n-1 is worth taking or not. Returns the option with higher outcome
+		return maximumOf(values [n - 1] + recursiveKnapsack(maxW - weights[n - 1], n - 1),
+			recursiveKnapsack(maxW, n - 1));
+	}
+
+	// Dynamic function, calculates the maximum value that can be carried in a bag with 'maxW' capacity and 'n' items.
+	static int dynamicKnapsack(int maxW, int n) {
+		int dTable[][] = new int [maxW+1][n+1];
+
+		// Initializing the max values for 0 items and 0 capacity as 0
+		for (int j = 0; j <= n; j++)
+			dTable[0][j] = 0;
+		for (int w = 0; w <= maxW; w++)
+			dTable[w][0] = 0;
+
+		// Make a table of max values with the previous max values (memoization)
+		for (int j = 1; j <= n; j++) {
+			for (int w = 1; w <= maxW; w++) {
+				// The item in position 'j' can't be taken if its weight is higher than the bags capacity
+				if (weights[j - 1] > w) {
+					dTable[w][j] = dTable[w][j - 1];
+				} else {
+					// Decide if the item at position n-1 is worth taking or not. Returns the option with higher outcome
+					dTable[w][j] = maximumOf(values[j - 1] + dTable[w - weights[j - 1]][j - 1], dTable[w][j - 1]);
+				}
+			}
+		}
+
+		// Return the maximum value that can be obtained in the bag
+		return dTable[maxW][n];
+	}
+
 	public static void main(String args[]) {  
 		if (args.length >= 2) {
 			try {
 				BufferedReader in = new BufferedReader(new FileReader(args[1]));
 				
-				// Make graph
 				String[] sizes = in.readLine().split(" ");
-				wsize = Integer.parseInt(sizes[0]);
+				maxWeight = Integer.parseInt(sizes[0]);
 				nitems = Integer.parseInt(sizes[1]);
+
+				values = new int[nitems];
+				weights = new int[nitems];
 
 				String[] lineElement;
 				for (int i = 0; i < nitems; i++) {
 					lineElement = in.readLine().split(" ");
-					// save graph information
+					values[i] = Integer.parseInt(lineElement[0]);
+					weights[i] = Integer.parseInt(lineElement[1]);
 				}
 
 				in.close();
@@ -32,28 +85,18 @@ class knapsack {
 			}
 
 			long startTime = System.nanoTime();
-			// Run algorithm
+			// Run algorithms
 			switch (args[0]) {
-			// Prim direct
 			case "recursive":
-				for (int j = 0; j < nitems; j++) {
-					value[0, j] = 0;
-				}
-
-				for (int i = 0; i < wsize; i++) {
-					value[i, 0] = 0;
-				}
-
-				for (int i = 1; i < nitems; i++) {
-					for (int w = 1; w < wsize; w++) {
-						value[w][i] = value[w][i - 1];
-					}
-				}
+				// Recursive solution
+				System.out.println("The maximum value that can be carried is: " + recursiveKnapsack(maxWeight, nitems));
 				break;
 			case "dynamic":
-				System.out.println("dynamic");
+				// Dynamic solution
+				System.out.println("The maximum value that can be carried is: " + dynamicKnapsack(maxWeight, nitems));
 				break;
 			default:
+				// Unspecified error
 				System.err.println("\"" + args[0] + "\" is not a valid option.");
 				break;
 			}
